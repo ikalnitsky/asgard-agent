@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = asgard_agent
+omit = asgard_agent/openstack/*
+
+[report]
+ignore_errors = True
