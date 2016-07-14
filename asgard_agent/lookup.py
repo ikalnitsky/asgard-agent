@@ -69,4 +69,4 @@ def main():
 
     # Save node UUID in order to enable heartbeats.
     if resp.status_code == requests.codes.ok:
-        common.set_node_uuid(resp.json['node']['uuid'])
+        common.set_node_uuid(resp.json()['node']['uuid'])
