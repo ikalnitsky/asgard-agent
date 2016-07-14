@@ -19,25 +19,31 @@ from asgard_agent import common
 from asgard_agent import exceptions
 
 
+def _normalize_mac(mac_address):
+    return mac_address.lower().replace('-', ':')
+
+
 def _get_ssh_address():
     if 'BOOTIF' not in common.KERNEL_PARAMS:
         raise exceptions.BootInterfaceNotFound(
             'BOOTIF option is not passed to Linux kernel. Your PXE '
             'firmware either misconfigured or does not support it.')
 
-    bootif = common.KERNEL_PARAMS['BOOTIF']
+    # Strip out first 3 characters because they are PXE related stuff.
+    # Example: 01-08-00-27-33-70-c4 -> 08-00-27-33-70-c4
+    bootif = _normalize_mac(common.KERNEL_PARAMS['BOOTIF'][3:])
 
     for name in netifaces.interfaces():
-        for info in netifaces.ifaddresses(name):
-            if bootif == info[netifaces.AF_LINK][0]['addr']:
-                try:
-                    # So far Ironic doesn't support multiple IP addresses.
-                    # Pick up first one and pray. :)
-                    return info[netifaces.AF_INET][0]['addr']
-                except (KeyError, IndexError):
-                    raise exceptions.IPAddressNotFound(
-                        'IP address on interface with MAC %s not found'
-                        % bootif)
+        info = netifaces.ifaddresses(name)
+        if bootif == _normalize_mac(info[netifaces.AF_LINK][0]['addr']):
+            try:
+                # So far Ironic doesn't support multiple IP addresses.
+                # Pick up first one and pray. :)
+                return info[netifaces.AF_INET][0]['addr']
+            except (KeyError, IndexError):
+                raise exceptions.IPAddressNotFound(
+                    'IP address on interface with MAC %s not found'
+                    % bootif)
 
     raise exceptions.BootInterfaceNotFound(
         'Network interface with MAC address %s was not found.' % bootif)
